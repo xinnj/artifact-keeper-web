@@ -1,19 +1,28 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { NONCE_HEADER } from "@/lib/security-headers";
 import "./globals.css";
 
-const geistSans = Geist({
+// Geist is self-hosted (next/font/local) rather than fetched from
+// fonts.googleapis.com via next/font/google. The latter downloads the font
+// CSS during `next build`, which fails in build environments that cannot reach
+// Google (e.g. our China-based deploy server). Self-hosting removes the
+// build-time network dependency entirely. Fonts sourced from the canonical
+// vercel/geist-font repo: fonts/Geist/webfonts/Geist[wght].woff2 and
+// fonts/GeistMono/webfonts/GeistMono[wght].woff2.
+const geistSans = localFont({
+  src: "./fonts/geist-sans-variable.woff2",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/geist-mono-variable.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {

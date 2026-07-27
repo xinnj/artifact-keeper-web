@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { Loader2, Lock, LogIn, Shield, Terminal } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
+import { getBasePath } from "@/lib/base-path";
 import { toUserMessage, isAccountLocked } from "@/lib/error-utils";
 import { ssoApi } from "@/lib/api/sso";
 import type { SsoProvider } from "@/types/sso";
@@ -272,7 +273,7 @@ function LoginContent() {
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center">
             <Image
-              src="/logo-48.png"
+              src={`${getBasePath()}/logo-48.png`}
               alt="Artifact Keeper"
               width={48}
               height={48}

@@ -121,6 +121,23 @@ export function middleware(request: NextRequest) {
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
   const init = { request: { headers: requestHeaders } };
 
+  // With `skipTrailingSlashRedirect: true` (required for the Docker /v2/ endpoint
+  // — see next.config.ts), Next.js no longer redirects `<basePath>/` →
+  // `<basePath>`. For the root route that trailing-slash URL is served with an
+  // empty 200 body (no HTML) instead of the dashboard. Normalize it here. The
+  // raw request URL still carries the basePath and trailing slash (unlike
+  // `nextUrl.pathname`, which is basePath-stripped), so match against it.
+  const basePath = request.nextUrl.basePath || "";
+  if (basePath && new URL(request.url).pathname === `${basePath}/`) {
+    const url = new URL(request.url);
+    url.pathname = basePath;
+    return withSecurityHeaders(
+      NextResponse.redirect(url),
+      contentSecurityPolicy,
+      httpsEnabled,
+    );
+  }
+
   // SSE event stream uses a dedicated App Router route handler for proper
   // streaming support. Middleware rewrites gzip-compress and close the
   // connection, which breaks long-lived SSE connections. Trailing-slash
@@ -166,6 +183,16 @@ export const config = {
      */
     {
       source: "/((?!_next/static|_next/image|favicon.ico).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+    // The trailing-slash root (`<basePath>/`) does not match the source above
+    // (its basePath-relative path is empty), so add an explicit matcher for it
+    // so the redirect in `middleware()` runs for `/ak/`.
+    {
+      source: "/",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

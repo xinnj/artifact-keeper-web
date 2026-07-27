@@ -26,8 +26,10 @@ ARG APP_VERSION=dev
 # block) without rebuilding. Leave unset (default) for plain-HTTP deployments;
 # set it when the UI will be served behind TLS. See #2222.
 ARG AK_ENFORCE_HTTPS
+ARG NEXT_PUBLIC_BASE_PATH=/__AK_BASE_PATH__
 ENV GIT_SHA=${GIT_SHA}
 ENV NEXT_PUBLIC_APP_VERSION=${APP_VERSION}
+ENV NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}
 ENV AK_ENFORCE_HTTPS=${AK_ENFORCE_HTTPS}
 # Reference APP_VERSION in the RUN to bust Docker build cache when it changes
 RUN echo "Building version: ${APP_VERSION} (${GIT_SHA})" && npm run build
@@ -116,8 +118,14 @@ COPY --from=build --chown=root:root --chmod=555 /app/.next/static ./.next/static
 # Next.js needs a writable cache directory for image optimization at runtime
 RUN mkdir -p .next/cache && chown 1001:0 .next/cache
 
+# Flight-frame merge helper invoked by entrypoint.sh (see that file for why).
+COPY --from=build --chown=root:root --chmod=555 /app/scripts/merge-flight-frames.mjs ./scripts/merge-flight-frames.mjs
+
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
+
 USER 1001
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["./entrypoint.sh"]

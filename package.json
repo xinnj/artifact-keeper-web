@@ -1,6 +1,6 @@
 {
   "name": "artifact-keeper-web",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "test:e2e:ci": "playwright test --reporter=github",
     "test:e2e:docs-export": "npx tsx e2e/scripts/generate-docs-manifest.ts",
     "test:e2e:docker-proxy": "playwright test --config playwright-docker-proxy.config.ts",
+    "test:e2e:subpath": "playwright test --config playwright-subpath.config.ts",
     "tutorial:record": "playwright test --config playwright-tutorials.config.ts",
     "tutorial:record:one": "playwright test --config playwright-tutorials.config.ts -g",
     "tutorial:manifest": "npx tsx e2e/tutorials/scripts/generate-manifest.ts",

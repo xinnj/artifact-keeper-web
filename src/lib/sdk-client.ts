@@ -13,6 +13,7 @@
  */
 
 import { client } from '@artifact-keeper/sdk/client';
+import { getBasePath } from '@/lib/base-path';
 
 // ---------------------------------------------------------------------------
 // CSRF defense-in-depth
@@ -119,14 +120,14 @@ client.interceptors.response.use(async (response, request) => {
   if (
     response.status === 403 &&
     typeof window !== 'undefined' &&
-    !window.location.pathname.startsWith('/login') &&
-    !window.location.pathname.startsWith('/change-password')
+    !window.location.pathname.startsWith(`${getBasePath()}/login`) &&
+    !window.location.pathname.startsWith(`${getBasePath()}/change-password`)
   ) {
     try {
       const cloned = response.clone();
       const body = await cloned.json();
       if (body?.error === 'SETUP_REQUIRED') {
-        window.location.href = '/login';
+        window.location.href = `${getBasePath()}/login`;
         return response;
       }
     } catch {
@@ -193,8 +194,8 @@ client.interceptors.response.use(async (response, request) => {
   } catch {
     isRefreshing = false;
     refreshSubscribers = [];
-    if (!window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login';
+    if (!window.location.pathname.startsWith(`${getBasePath()}/login`)) {
+      window.location.href = `${getBasePath()}/login`;
     }
     return response;
   }

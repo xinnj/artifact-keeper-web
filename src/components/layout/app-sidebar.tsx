@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getBasePath } from "@/lib/base-path";
 import {
   LayoutDashboard,
   Database,
@@ -203,7 +204,7 @@ export function AppSidebar() {
             <SidebarMenuButton size="lg" asChild>
               <Link href="/">
                 <Image
-                  src="/logo-48.png"
+                  src={`${getBasePath()}/logo-48.png`}
                   alt="Artifact Keeper"
                   width={32}
                   height={32}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { getBasePath } from "@/lib/base-path";
 
 export default function GlobalError({
   error,
@@ -40,7 +41,7 @@ export default function GlobalError({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo-48.png"
+            src={`${getBasePath()}/logo-48.png`}
             alt="Artifact Keeper"
             width={48}
             height={48}
@@ -107,7 +108,7 @@ export default function GlobalError({
             </button>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
-              href="/"
+              href={`${getBasePath()}/`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

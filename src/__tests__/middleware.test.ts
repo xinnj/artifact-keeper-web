@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockRewrite = vi.fn();
 const mockNext = vi.fn();
+const mockRedirect = vi.fn();
 
 interface MockResponse {
   type: string;
@@ -40,6 +41,10 @@ vi.mock("next/server", () => ({
       mockNext(...args);
       return makeMockResponse("next", args);
     },
+    redirect: (...args: unknown[]) => {
+      mockRedirect(...args);
+      return makeMockResponse("redirect", args);
+    },
   },
 }));
 
@@ -51,6 +56,7 @@ beforeEach(() => {
   delete process.env.AK_ENFORCE_HTTPS;
   mockRewrite.mockClear();
   mockNext.mockClear();
+  mockRedirect.mockClear();
 });
 
 afterEach(() => {
@@ -61,6 +67,17 @@ afterEach(() => {
 function createMockNextRequest(pathname: string, search = "") {
   return {
     nextUrl: { pathname, search },
+  } as unknown as import("next/server").NextRequest;
+}
+
+function createMockNextRequestWithBasePath(
+  pathname: string,
+  basePath: string,
+  url: string,
+) {
+  return {
+    nextUrl: { pathname, basePath },
+    url,
   } as unknown as import("next/server").NextRequest;
 }
 
@@ -212,12 +229,59 @@ describe("middleware proxying", () => {
     }
   });
 
+  it("redirects the trailing-slash root to the basePath root", async () => {
+    // With skipTrailingSlashRedirect enabled (next.config.ts), `<basePath>/`
+    // is served empty. The middleware must normalize it to `<basePath>`.
+    const { middleware } = await import("../middleware");
+    const request = createMockNextRequestWithBasePath(
+      "/",
+      "/ak",
+      "http://localhost:3000/ak/",
+    );
+    const result = middleware(request) as unknown as MockResponse;
+
+    expect(result.type).toBe("redirect");
+    expect(mockRedirect).toHaveBeenCalledTimes(1);
+    const url = mockRedirect.mock.calls[0][0] as URL;
+    expect(url.pathname).toBe("/ak");
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  it("does not redirect the basePath root without a trailing slash", async () => {
+    const { middleware } = await import("../middleware");
+    const request = createMockNextRequestWithBasePath(
+      "/",
+      "/ak",
+      "http://localhost:3000/ak",
+    );
+    const result = middleware(request) as unknown as MockResponse;
+
+    expect(result.type).toBe("next");
+    expect(mockRedirect).not.toHaveBeenCalled();
+  });
+
+  it("does not redirect the trailing-slash root when there is no basePath", async () => {
+    // No sub-path deployment: `/` is the normal root and must pass through.
+    const { middleware } = await import("../middleware");
+    const request = createMockNextRequestWithBasePath(
+      "/",
+      "",
+      "http://localhost:3000/",
+    );
+    const result = middleware(request) as unknown as MockResponse;
+
+    expect(result.type).toBe("next");
+    expect(mockRedirect).not.toHaveBeenCalled();
+  });
+
   it("exports a catch-all matcher that excludes only Next.js internals", async () => {
     // The matcher must cover page routes (for runtime security headers, #679)
     // as well as the proxy paths; the middleware function itself decides
-    // which is which.
+    // which is which. A second matcher covers the trailing-slash root
+    // (`<basePath>/`), whose basePath-relative path is empty and therefore does
+    // not match the catch-all — see the redirect in `middleware()`.
     const { config } = await import("../middleware");
-    expect(config.matcher).toHaveLength(1);
+    expect(config.matcher).toHaveLength(2);
     const rule = config.matcher[0] as {
       source: string;
       missing: { type: string; key: string; value?: string }[];
@@ -229,6 +293,7 @@ describe("middleware proxying", () => {
       { type: "header", key: "next-router-prefetch" },
       { type: "header", key: "purpose", value: "prefetch" },
     ]);
+    expect((config.matcher[1] as { source: string }).source).toBe("/");
   });
 });
 

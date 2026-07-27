@@ -1,10 +1,11 @@
 # Artifact Keeper — Web
 
-Next.js 15 web frontend for Artifact Keeper, an enterprise artifact registry.
+Next.js 16 web frontend for Artifact Keeper, an enterprise artifact registry.
+Supports runtime-configurable sub-path deployment.
 
 ## Tech Stack
 
-- **Next.js 15** with App Router
+- **Next.js 16** with App Router
 - **TypeScript 5.x**
 - **Tailwind CSS 4** for styling
 - **shadcn/ui** for component primitives
@@ -80,6 +81,49 @@ so it relies on a CSRF contract with the backend:
 
 The backend enforcement half is tracked as a follow-up issue in the
 `artifact-keeper` repository (see issue #673 here for the full audit finding).
+
+### Sub-path deployment (`BASE_PATH`)
+
+The UI can be served under a configurable sub-path (e.g.,
+`https://example.com/artifact-keeper/`) without rebuilding the Docker
+image. **API routes stay at the root** (`/api/`, `/health`, native
+package format paths) so the reverse proxy can route them directly to
+the backend.
+
+The mechanism uses a build-time placeholder (`/__AK_BASE_PATH__`) that
+an entrypoint script replaces with the runtime `BASE_PATH` env var:
+
+```bash
+# Run at root (default)
+docker run -p 3000:3000 artifact-keeper-web
+# → UI at http://localhost:3000/
+
+# Run at a sub-path
+docker run -p 3000:3000 -e BASE_PATH=/ak artifact-keeper-web
+# → UI at http://localhost:3000/ak/
+```
+
+**Required reverse proxy layout:**
+
+```
+https://example.com
+  /ak/*        →  proxy  →  Next.js container (UI)
+  /api/*       →  proxy  →  backend container (API)
+  /health      →  proxy  →  backend container
+  /v2/*        →  proxy  →  backend container  (Docker Registry)
+  …
+```
+
+**Dev mode** (without Docker) — set `NEXT_PUBLIC_BASE_PATH` directly:
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/ak npm run dev
+```
+
+**SSO note:** When `BASE_PATH` is set, configure the backend's OAuth
+redirect URI to include the sub-path (e.g.,
+`https://example.com/ak/auth/callback`) so the SSO callback reaches
+Next.js after authentication.
 
 ## Project Structure
 

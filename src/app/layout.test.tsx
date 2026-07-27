@@ -10,9 +10,8 @@ vi.mock('@/components/ui/sonner', () => ({
   Toaster: () => <div data-testid="toaster" />,
 }));
 
-vi.mock('next/font/google', () => ({
-  Geist: () => ({ variable: '--font-geist-sans' }),
-  Geist_Mono: () => ({ variable: '--font-geist-mono' }),
+vi.mock('next/font/local', () => ({
+  default: (opts?: { variable?: string }) => ({ variable: opts?.variable }),
 }));
 
 vi.mock('next/headers', () => ({
